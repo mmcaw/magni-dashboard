@@ -3,3 +3,4 @@ pandas
 pandas_gbq
 streamlit
 google-cloud-bigquery
+plotly
