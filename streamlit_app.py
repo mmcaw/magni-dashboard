@@ -45,9 +45,11 @@ with col2:
 
 col1, col2, _ = st.columns(3)
 
+one_week_ago = datetime.now() - timedelta(weeks=1)
+
 with col1:
     date_start = st.date_input(
-            "Date From")
+            "Date From", one_week_ago)
 
 with col2:
     date_end = st.date_input(
