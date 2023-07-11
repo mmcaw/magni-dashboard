@@ -85,6 +85,11 @@ st.download_button(
 fig = px.line(df, x="Wavelengths", y="Counts", color='Date')
 st.plotly_chart(fig, theme="streamlit")
 
+## Maximum value with time
+df_max_counts = df.groupby(["Date"])["Counts"].max().reset_index()
+fig = px.line(df_max_counts, x="Date", y="Counts")
+st.plotly_chart(fig, theme="streamlit")
+
 # st.line_chart(df, x="Wavelengths", y="Counts")
 
 
