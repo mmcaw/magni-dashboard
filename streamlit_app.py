@@ -56,7 +56,12 @@ with col2:
     date_end = st.date_input(
             "Date To")
 
-query = f"SELECT * FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+# query = f"SELECT * FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+
+
+query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), '-', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING)) as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+
+
 df = pd.read_gbq(query, credentials=credentials)
 
 df["Wavelengths"] = df["Spectra"].apply(lambda x: x[0]["Wavelengths"])
@@ -81,12 +86,13 @@ st.download_button(
     mime='text/csv',
 )
 
+# import pdb; pdb.set_trace()
 
-fig = px.line(df, x="Wavelengths", y="Counts", color='Date')
+fig = px.line(df, x="Wavelengths", y="Counts", color="Date_Measurement")
 st.plotly_chart(fig, theme="streamlit")
 
 ## Maximum value with time
-df_max_counts = df.groupby(["Date"])["Counts"].max().reset_index()
+df_max_counts = df.groupby(["Date","Spectra_UUID","Measurement"])["Counts"].max().reset_index()
 fig = px.line(df_max_counts, x="Date", y="Counts")
 st.plotly_chart(fig, theme="streamlit")
 
