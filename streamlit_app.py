@@ -21,8 +21,12 @@ def run_query(query):
     rows = [dict(row) for row in rows_raw]
     return rows
 
+st.title('System References Dashboard')
 
 ### Status Board ###
+
+
+st.header('Daily Status')
 
 query = \
 """
@@ -45,8 +49,9 @@ st.dataframe(df_captured_today)
 
 
 ### Dropdowns ###
+st.header('System Data Inspection')
 
-col1, col2, _ = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 query_dropdown = "SELECT DISTINCT(System) FROM `qc-database-365211.System_References.abc`"
 system_options = pd.read_gbq(query_dropdown, credentials=credentials)
@@ -61,27 +66,18 @@ with col2:
         'Select a Channel',
         [1, 2])
 
-# query_dropdown = "SELECT DISTINCT(Date) FROM `qc-database-365211.System_References.abc`"
-# spectra_options = pd.read_gbq(query_dropdown, credentials=credentials)
-# spectra_options = spectra_options["Date"].tolist()
-# date = st.selectbox(
-#     'Select a Date',
-#     spectra_options)
-
-col1, col2, _ = st.columns(3)
-
 one_week_ago = datetime.now() - timedelta(weeks=1)
 
-with col1:
+with col3:
     date_start = st.date_input(
             "Date From", one_week_ago)
 
-with col2:
+with col4:
     date_end = st.date_input(
             "Date To")
 
 
-query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), '-', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING)) as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), ' (', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING), ')') as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
 
 
 df = pd.read_gbq(query, credentials=credentials)
