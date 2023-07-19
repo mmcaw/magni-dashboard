@@ -22,6 +22,30 @@ def run_query(query):
     return rows
 
 
+### Status Board ###
+
+query = \
+"""
+SELECT System,
+       CASE 
+           WHEN EXISTS (
+               SELECT 1
+               FROM `qc-database-365211.System_References.abc` as sub
+               WHERE sub.System = main.System AND sub.Date = CURRENT_DATE()
+           ) THEN '🟢' 
+           ELSE '🔴'
+       END as Record_Exists_Today
+FROM `qc-database-365211.System_References.abc` as main
+GROUP BY System
+"""
+
+df_captured_today = pd.read_gbq(query, credentials=credentials)
+st.dataframe(df_captured_today)
+
+
+
+### Dropdowns ###
+
 col1, col2, _ = st.columns(3)
 
 query_dropdown = "SELECT DISTINCT(System) FROM `qc-database-365211.System_References.abc`"
@@ -56,8 +80,6 @@ with col2:
     date_end = st.date_input(
             "Date To")
 
-# query = f"SELECT * FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
-
 
 query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), '-', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING)) as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
 
@@ -68,6 +90,7 @@ df["Wavelengths"] = df["Spectra"].apply(lambda x: x[0]["Wavelengths"])
 df["Counts"] = df["Spectra"].apply(lambda x: x[0]["Counts"])
 
 df = df.explode(["Wavelengths", "Counts"])
+
 
 
 
@@ -86,7 +109,6 @@ st.download_button(
     mime='text/csv',
 )
 
-# import pdb; pdb.set_trace()
 
 fig = px.line(df, x="Wavelengths", y="Counts", color="Date_Measurement")
 st.plotly_chart(fig, theme="streamlit")
