@@ -77,7 +77,16 @@ with col4:
             "Date To")
 
 
-query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), ' (', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING), ')') as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+# query = f"SELECT *, DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, CONCAT(FORMAT_DATE('%Y-%m-%d', Date), ' (', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING), ')') as Date_Measurement FROM `qc-database-365211.System_References.abc` WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'"
+
+query = f"""
+    SELECT *, 
+           DENSE_RANK() OVER (ORDER BY Spectra_UUID) as Measurement, 
+           CONCAT(FORMAT_DATE('%Y-%m-%d', Date), ' (', CAST(DENSE_RANK() OVER (ORDER BY Spectra_UUID) AS STRING), ')') as Date_Measurement 
+    FROM `qc-database-365211.System_References.abc` 
+    WHERE Date between '{date_start}' and '{date_end}' AND Channel={channel} AND System='{system}'
+    ORDER BY Date DESC
+"""
 
 
 df = pd.read_gbq(query, credentials=credentials)
@@ -85,8 +94,7 @@ df = pd.read_gbq(query, credentials=credentials)
 df["Wavelengths"] = df["Spectra"].apply(lambda x: x[0]["Wavelengths"])
 df["Counts"] = df["Spectra"].apply(lambda x: x[0]["Counts"])
 
-df = df.explode(["Wavelengths", "Counts"])
-
+df_plot = df.explode(["Wavelengths", "Counts"])
 
 
 
@@ -100,17 +108,21 @@ def convert_df(df):
 
 st.download_button(
     label="Download data as CSV",
-    data=convert_df(df),
+    data=convert_df(df_plot),
     file_name='reference_spectra.csv',
     mime='text/csv',
 )
 
 
-fig = px.line(df, x="Wavelengths", y="Counts", color="Date_Measurement")
+fig = px.line(df_plot, x="Wavelengths", y="Counts", color="Date_Measurement")
 st.plotly_chart(fig, theme="streamlit")
 
+
+st.dataframe(df[["System","Channel","Date","Operator","Spectrometer_Integration","Spectrometer_Averaging"]])
+
 ## Maximum value with time
-df_max_counts = df.groupby(["Date","Spectra_UUID","Measurement"])["Counts"].max().reset_index()
+st.header('Maximum counts over time')
+df_max_counts = df_plot.groupby(["Date","Spectra_UUID","Measurement"])["Counts"].max().reset_index()
 fig = px.line(df_max_counts, x="Date", y="Counts")
 st.plotly_chart(fig, theme="streamlit")
 
